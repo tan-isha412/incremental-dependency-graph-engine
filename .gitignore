@@ -1,0 +1,17 @@
+# Java
+.gradle
+build/
+out/
+
+# VS Code
+.vscode/
+
+# Node
+node_modules/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
