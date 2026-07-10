@@ -3,6 +3,7 @@ package org.example.engine;
 import org.example.models.BuildResult;
 import org.example.graphs.Graph;
 import org.example.graphs.Node;
+import org.example.graphs.NodeStatus;
 
 import java.util.*;
 
@@ -26,6 +27,7 @@ public class IncrementalBuildEngine {
 
         long startTime = System.currentTimeMillis();
         dirtyTracker.markDirty(changedNode);
+        List<Node> affectedNodes = finder.findAffectedNodes(changedNode);
 
         // Step 3: Validate graph
         if (cycleDetector.hasCycle()) {
@@ -33,7 +35,7 @@ public class IncrementalBuildEngine {
         }
 
         // Step 4: Get build order
-        List<Node> buildOrder = resolver.getBuildOrder();
+        List<Node> buildOrder = resolver.getBuildOrder(affectedNodes);
 
         // Step 5: Simulate build
 
