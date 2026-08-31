@@ -1,83 +1,138 @@
+import { Zap, AlertTriangle, ShieldCheck, Check, Sparkles } from "lucide-react";
+
 function AiImpactPanel({ impactReport, loading }) {
     if (loading) {
         return (
-            <div className="card ai-impact-card">
-                <h3 className="section-title"><span className="icon">🤖</span> AI Build Impact Analysis</h3>
-                <p>Generating GenAI impact report & AST dependency reasoning...</p>
+            <div className="card">
+                <div className="card-header">
+                    <h3 className="card-title">
+                        <Zap size={15} />
+                        <span>Blast-Radius & Impact Analysis</span>
+                    </h3>
+                </div>
+                <div className="placeholder-box">
+                    Computing downstream blast-radius and AST dependencies...
+                </div>
             </div>
         );
     }
 
     if (!impactReport) {
         return (
-            <div className="card ai-impact-card">
-                <h3 className="section-title"><span className="icon">🤖</span> AI Build Impact Analysis</h3>
-                <p className="placeholder-text">Select a node or trigger an incremental build to inspect AI impact explanation and recommended tests.</p>
+            <div className="card">
+                <div className="card-header">
+                    <h3 className="card-title">
+                        <Zap size={15} />
+                        <span>Blast-Radius & Impact Analysis</span>
+                    </h3>
+                </div>
+                <div className="placeholder-box">
+                    Select a node or trigger a build to inspect downstream impact, affected tests, and reasoning.
+                </div>
             </div>
         );
     }
 
-    const getRiskClass = (level) => {
-        if (level === "HIGH") return "badge badge-danger";
-        if (level === "MEDIUM") return "badge badge-warning";
-        return "badge badge-success";
+    const getRiskBadge = (level) => {
+        if (level === "HIGH") {
+            return (
+                <span className="badge badge-danger">
+                    <AlertTriangle size={11} />
+                    <span>HIGH RISK</span>
+                </span>
+            );
+        }
+        if (level === "MEDIUM") {
+            return (
+                <span className="badge badge-warning">
+                    <AlertTriangle size={11} />
+                    <span>MEDIUM RISK</span>
+                </span>
+            );
+        }
+        return (
+            <span className="badge badge-success">
+                <ShieldCheck size={11} />
+                <span>LOW RISK</span>
+            </span>
+        );
     };
 
     return (
-        <div className="card ai-impact-card">
+        <div className="card">
             <div className="card-header">
-                <h3 className="section-title"><span className="icon">🤖</span> AI Build Impact Analysis</h3>
-                <span className={getRiskClass(impactReport.riskLevel)}>
-                    {impactReport.riskLevel} RISK
-                </span>
+                <h3 className="card-title">
+                    <Zap size={15} />
+                    <span>Blast-Radius & Impact Analysis</span>
+                </h3>
+                {getRiskBadge(impactReport.riskLevel)}
             </div>
 
-            <div className="impact-grid">
-                <div className="impact-box">
-                    <strong>Modified File:</strong>
+            <div className="impact-breakdown">
+                <div className="impact-item">
+                    <span className="impact-label">Target Modified Node</span>
                     <div className="code-tag highlight">{impactReport.changedFile}</div>
                 </div>
 
-                <div className="impact-box">
-                    <strong>Direct Dependents ({impactReport.directDependents?.length || 0}):</strong>
-                    <div className="tag-list">
-                        {impactReport.directDependents?.length > 0
-                            ? impactReport.directDependents.map((d, i) => <span key={i} className="code-tag">{d}</span>)
-                            : <span className="muted">None</span>}
+                <div className="impact-item">
+                    <span className="impact-label">Direct Dependents ({impactReport.directDependents?.length || 0})</span>
+                    <div className="tag-container">
+                        {impactReport.directDependents?.length > 0 ? (
+                            impactReport.directDependents.map((d, i) => <span key={i} className="code-tag">{d}</span>)
+                        ) : (
+                            <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>None</span>
+                        )}
                     </div>
                 </div>
 
-                <div className="impact-box">
-                    <strong>Indirect Downstream ({impactReport.indirectDependents?.length || 0}):</strong>
-                    <div className="tag-list">
-                        {impactReport.indirectDependents?.length > 0
-                            ? impactReport.indirectDependents.map((d, i) => <span key={i} className="code-tag muted-tag">{d}</span>)
-                            : <span className="muted">None</span>}
+                <div className="impact-item">
+                    <span className="impact-label">Indirect Downstream ({impactReport.indirectDependents?.length || 0})</span>
+                    <div className="tag-container">
+                        {impactReport.indirectDependents?.length > 0 ? (
+                            impactReport.indirectDependents.map((d, i) => <span key={i} className="code-tag">{d}</span>)
+                        ) : (
+                            <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>None</span>
+                        )}
                     </div>
                 </div>
 
-                <div className="impact-box">
-                    <strong>Suggested Tests to Rerun ({impactReport.potentialTestsToRerun?.length || 0}):</strong>
-                    <div className="tag-list">
-                        {impactReport.potentialTestsToRerun?.length > 0
-                            ? impactReport.potentialTestsToRerun.map((t, i) => <span key={i} className="code-tag test-tag">🧪 {t}</span>)
-                            : <span className="muted">None</span>}
-                    </div>
-                </div>
-
-                <div className="impact-box">
-                    <strong>Unaffected Files Saved ({impactReport.unaffectedFiles?.length || 0}):</strong>
-                    <div className="tag-list">
-                        {impactReport.unaffectedFiles?.length > 0
-                            ? impactReport.unaffectedFiles.map((u, i) => <span key={i} className="code-tag clean-tag">✓ {u}</span>)
-                            : <span className="muted">None</span>}
+                <div className="impact-item">
+                    <span className="impact-label">Recommended Test Suites ({impactReport.potentialTestsToRerun?.length || 0})</span>
+                    <div className="tag-container">
+                        {impactReport.potentialTestsToRerun?.length > 0 ? (
+                            impactReport.potentialTestsToRerun.map((t, i) => <span key={i} className="code-tag test">{t}</span>)
+                        ) : (
+                            <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>None</span>
+                        )}
                     </div>
                 </div>
             </div>
 
-            <div className="reasoning-box">
-                <h4>GenAI Contextual Reasoning & AST Explanation</h4>
-                <p>{impactReport.aiExplanation}</p>
+            {impactReport.unaffectedFiles && impactReport.unaffectedFiles.length > 0 && (
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                    <span className="impact-label">Unaffected / Cached ({impactReport.unaffectedFiles.length} files preserved)</span>
+                    <div className="tag-container">
+                        {impactReport.unaffectedFiles.slice(0, 8).map((u, i) => (
+                            <span key={i} className="code-tag clean">
+                                <Check size={10} style={{ display: "inline", marginRight: "3px" }} />
+                                {u}
+                            </span>
+                        ))}
+                        {impactReport.unaffectedFiles.length > 8 && (
+                            <span className="code-tag" style={{ color: "var(--text-muted)" }}>
+                                +{impactReport.unaffectedFiles.length - 8} more
+                            </span>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            <div className="explanation-panel">
+                <span className="explanation-title">
+                    <Sparkles size={13} color="var(--accent)" />
+                    <span>Contextual AST Impact Explanation</span>
+                </span>
+                <p className="explanation-text">{impactReport.aiExplanation}</p>
             </div>
         </div>
     );

@@ -1,16 +1,17 @@
-# React + Vite
+# Frontend Client
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+The React 19 single-page application for the Incremental Build Intelligence Platform.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **AST Graph Visualizer**: Interactive ReactFlow canvas with real-time node dragging, topology inspector, and minimap.
+- **Project Discovery**: Local file system scanner and direct drag-and-drop Java file parser.
+- **Engine Controls**: Incremental build triggers, dynamic class selection, and cycle detection.
+- **Performance & Blast-Radius Metrics**: Rebuild duration, topological ordering sequence, affected downstream nodes, and recommended test suites.
+- **Execution Audit Log**: Historical log of incremental builds executed during the session.
 
-## React Compiler
+## Scripts
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- `npm run dev`: Start Vite development server
+- `npm run build`: Compile production bundle to `dist/`
+- `npm run lint`: Run ESLint checks

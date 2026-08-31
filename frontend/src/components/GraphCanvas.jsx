@@ -4,6 +4,7 @@ import ReactFlow, {
     MiniMap
 } from "reactflow";
 import { useEffect, useState, useCallback } from "react";
+import { Network, RefreshCw } from "lucide-react";
 import api from "../services/api";
 import "reactflow/dist/style.css";
 
@@ -17,28 +18,35 @@ function GraphCanvas({ refreshTrigger, onNodeSelect }) {
             const rawNodes = res.data.nodes || [];
             const rawEdges = res.data.edges || [];
 
-            const cols = 3;
+            const cols = Math.max(2, Math.ceil(Math.sqrt(rawNodes.length)));
             const flowNodes = rawNodes.map((node, index) => {
                 const col = index % cols;
                 const row = Math.floor(index / cols);
                 return {
                     id: node.id,
                     position: {
-                        x: col * 240 + 50,
-                        y: row * 130 + 50
+                        x: col * 260 + 40,
+                        y: row * 120 + 40
                     },
                     data: {
-                        label: `☕ ${node.label || node.id}`
+                        label: (
+                            <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                                <div style={{ fontSize: "11px", color: "#a1a1aa", textTransform: "uppercase", letterSpacing: "0.04em" }}>Class</div>
+                                <div style={{ fontSize: "13px", fontWeight: 600, color: "#f4f4f5", fontFamily: "var(--font-mono)" }}>
+                                    {node.label || node.id}
+                                </div>
+                            </div>
+                        )
                     },
                     style: {
-                        background: "#1f2430",
-                        color: "#e6edf3",
-                        border: "1px solid #38bdf8",
-                        borderRadius: "8px",
-                        padding: "10px 14px",
-                        fontWeight: 600,
+                        background: "#18181b",
+                        color: "#f4f4f5",
+                        border: "1px solid #27272a",
+                        borderRadius: "6px",
+                        padding: "8px 12px",
                         fontSize: "13px",
-                        boxShadow: "0 4px 12px rgba(0,0,0,0.3)"
+                        boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+                        cursor: "pointer"
                     }
                 };
             });
@@ -48,7 +56,7 @@ function GraphCanvas({ refreshTrigger, onNodeSelect }) {
                 source: edge.src || edge.fr,
                 target: edge.target || edge.to,
                 animated: true,
-                style: { stroke: "#a855f7", strokeWidth: 2 }
+                style: { stroke: "#3b82f6", strokeWidth: 1.5 }
             }));
 
             setNodes(flowNodes);
@@ -70,24 +78,34 @@ function GraphCanvas({ refreshTrigger, onNodeSelect }) {
     };
 
     return (
-        <div className="card canvas-card" style={{ height: "560px", width: "100%", position: "relative" }}>
-            <div className="canvas-header">
-                <h3><span className="icon">🕸️</span> Live Dependency Graph (AST Visualizer)</h3>
-                <button className="btn btn-sm btn-secondary" onClick={loadGraph}>🔄 Refresh</button>
+        <div className="card" style={{ height: "580px", width: "100%", position: "relative" }}>
+            <div className="card-header">
+                <h3 className="card-title">
+                    <Network size={15} />
+                    <span>Dependency Graph (AST View)</span>
+                </h3>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <span className="badge badge-neutral">{nodes.length} nodes</span>
+                    <button className="btn btn-sm btn-secondary" onClick={loadGraph}>
+                        <RefreshCw size={11} />
+                        <span>Refresh</span>
+                    </button>
+                </div>
             </div>
-            <div style={{ width: "100%", height: "500px", borderRadius: "8px", overflow: "hidden" }}>
+
+            <div style={{ width: "100%", height: "500px", borderRadius: "6px", overflow: "hidden", border: "1px solid var(--border)", background: "#09090b" }}>
                 <ReactFlow
                     nodes={nodes}
                     edges={edges}
                     onNodeClick={handleNodeClick}
                     fitView
                 >
-                    <Background color="#334155" gap={16} />
-                    <Controls />
+                    <Background color="#27272a" gap={20} size={1} />
+                    <Controls style={{ fill: "#f4f4f5" }} />
                     <MiniMap
-                        nodeColor={() => "#38bdf8"}
-                        maskColor="rgba(15, 23, 42, 0.7)"
-                        style={{ backgroundColor: "#0f172a" }}
+                        nodeColor={() => "#3b82f6"}
+                        maskColor="rgba(9, 9, 11, 0.8)"
+                        style={{ backgroundColor: "#18181b", border: "1px solid #27272a" }}
                     />
                 </ReactFlow>
             </div>

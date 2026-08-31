@@ -1,25 +1,32 @@
 import { useState, useRef } from "react";
+import { FolderGit2, Upload, FileCode, Search, CheckCircle2, AlertCircle } from "lucide-react";
 import api from "../services/api";
 
 function ProjectPicker({ onScanComplete, onFileWatchTriggered }) {
     const [projectPath, setProjectPath] = useState("/backend/app/src/main/java");
     const [loading, setLoading] = useState(false);
-    const [statusMsg, setStatusMsg] = useState("");
+    const [status, setStatus] = useState(null);
     const [isDragging, setIsDragging] = useState(false);
     const fileInputRef = useRef(null);
 
     async function handleScan() {
         setLoading(true);
-        setStatusMsg("Scanning Java project & parsing AST...");
+        setStatus({ type: "info", text: "Scanning path & parsing AST..." });
         try {
             const res = await api.post("/projects/scan", { path: projectPath });
-            setStatusMsg(`Successfully discovered ${res.data.nodes?.length || 0} Java classes.`);
+            setStatus({
+                type: "success",
+                text: `Discovered ${res.data.nodes?.length || 0} Java classes.`
+            });
             if (onScanComplete) {
                 onScanComplete(res.data);
             }
         } catch (err) {
             console.error(err);
-            setStatusMsg("Failed to scan project: " + (err.message || "Unknown error"));
+            setStatus({
+                type: "error",
+                text: "Scan error: " + (err.response?.data?.msg || err.message)
+            });
         } finally {
             setLoading(false);
         }
@@ -28,7 +35,7 @@ function ProjectPicker({ onScanComplete, onFileWatchTriggered }) {
     async function processUploadedFiles(rawFiles) {
         if (!rawFiles || rawFiles.length === 0) return;
         setLoading(true);
-        setStatusMsg(`Reading ${rawFiles.length} uploaded file(s)...`);
+        setStatus({ type: "info", text: `Reading ${rawFiles.length} file(s)...` });
 
         try {
             const filePromises = Array.from(rawFiles).map((file) => {
@@ -50,18 +57,21 @@ function ProjectPicker({ onScanComplete, onFileWatchTriggered }) {
             const javaFiles = parsedFiles.filter(f => f.name.endsWith(".java"));
 
             if (javaFiles.length === 0) {
-                setStatusMsg("No .java files found in uploaded selection.");
+                setStatus({ type: "error", text: "No .java source files found in selection." });
                 setLoading(false);
                 return;
             }
 
-            setStatusMsg(`Uploading and analyzing AST for ${javaFiles.length} Java class(es)...`);
+            setStatus({ type: "info", text: `Ingesting AST for ${javaFiles.length} classes...` });
             const res = await api.post("/projects/upload", {
                 files: javaFiles,
                 folderName: "custom-uploaded-project"
             });
 
-            setStatusMsg(`Successfully uploaded & mapped ${res.data.nodes?.length || 0} classes!`);
+            setStatus({
+                type: "success",
+                text: `Loaded ${res.data.nodes?.length || 0} classes into graph.`
+            });
             if (res.data.uploadPath) {
                 setProjectPath(res.data.uploadPath);
             }
@@ -70,7 +80,10 @@ function ProjectPicker({ onScanComplete, onFileWatchTriggered }) {
             }
         } catch (err) {
             console.error(err);
-            setStatusMsg("Failed to upload project: " + (err.message || "Unknown error"));
+            setStatus({
+                type: "error",
+                text: "Upload error: " + (err.response?.data?.error || err.message)
+            });
         } finally {
             setLoading(false);
         }
@@ -108,23 +121,27 @@ function ProjectPicker({ onScanComplete, onFileWatchTriggered }) {
             const res = await api.get("/projects/changes");
             const changed = res.data || [];
             if (changed.length > 0) {
-                setStatusMsg(`Detected changes in: ${changed.join(", ")}`);
+                setStatus({ type: "info", text: `Modified: ${changed.join(", ")}` });
                 if (onFileWatchTriggered) onFileWatchTriggered(changed);
             } else {
-                setStatusMsg("No file changes detected by FileWatcher.");
+                setStatus({ type: "info", text: "No pending file changes detected." });
             }
-        } catch (err) {
-            setStatusMsg("Error checking file watch status.");
+        } catch {
+            setStatus({ type: "error", text: "Watch check failed." });
         }
     }
 
     return (
-        <div className="card project-picker-card">
-            <h3 className="section-title">
-                <span className="icon">📁</span> Real Java Project Discovery
-            </h3>
-            <p className="description-text">
-                Scan local or uploaded Java source files automatically using AST parsing. Extract imports, types, methods, and dependencies.
+        <div className="card">
+            <div className="card-header">
+                <h3 className="card-title">
+                    <FolderGit2 size={15} />
+                    <span>Project Discovery</span>
+                </h3>
+            </div>
+
+            <p className="card-description">
+                Extract class dependencies, package imports, and inheritance trees via static AST analysis.
             </p>
 
             <div
@@ -133,23 +150,14 @@ function ProjectPicker({ onScanComplete, onFileWatchTriggered }) {
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
-                style={{
-                    border: isDragging ? "2px dashed #3b82f6" : "2px dashed #cbd5e1",
-                    borderRadius: "8px",
-                    padding: "16px",
-                    textAlign: "center",
-                    cursor: "pointer",
-                    backgroundColor: isDragging ? "rgba(59, 130, 246, 0.05)" : "#f8fafc",
-                    marginBottom: "12px",
-                    transition: "all 0.2s ease"
-                }}
             >
-                <p style={{ margin: 0, fontSize: "14px", fontWeight: 500, color: "#475569" }}>
-                    📤 <strong>Click or Drag & Drop Java folder / files here</strong>
-                </p>
-                <span style={{ fontSize: "12px", color: "#94a3b8" }}>
-                    Select .java files or a folder from your computer to analyze automatically
-                </span>
+                <Upload size={16} className="text-secondary" />
+                <div className="dropzone-title">
+                    <span>Upload Java files or folder</span>
+                </div>
+                <div className="dropzone-subtitle">
+                    Drop .java files here or click to browse
+                </div>
                 <input
                     type="file"
                     ref={fileInputRef}
@@ -164,21 +172,35 @@ function ProjectPicker({ onScanComplete, onFileWatchTriggered }) {
                 <input
                     type="text"
                     className="input-field"
-                    placeholder="Or enter path (e.g. /backend/app/src/main/java)"
+                    placeholder="Filesystem path (/src/main/java)"
                     value={projectPath}
                     onChange={(e) => setProjectPath(e.target.value)}
                 />
                 <button className="btn btn-primary" onClick={handleScan} disabled={loading}>
-                    {loading ? "Scanning..." : "Scan AST Path"}
+                    <FileCode size={13} />
+                    <span>{loading ? "Scanning" : "Scan Path"}</span>
                 </button>
             </div>
 
-            <div className="button-row" style={{ marginTop: "10px" }}>
-                <button className="btn btn-secondary" onClick={handleCheckChanges}>
-                    🔍 Run Watcher Check
+            <div style={{ display: "flex", gap: "8px" }}>
+                <button className="btn btn-sm btn-secondary" onClick={handleCheckChanges}>
+                    <Search size={12} />
+                    <span>Check File Changes</span>
                 </button>
             </div>
-            {statusMsg && <div className="status-badge" style={{ marginTop: "10px" }}>{statusMsg}</div>}
+
+            {status && (
+                <div className={`status-badge ${status.type}`}>
+                    {status.type === "success" ? (
+                        <CheckCircle2 size={13} />
+                    ) : status.type === "error" ? (
+                        <AlertCircle size={13} />
+                    ) : (
+                        <FileCode size={13} />
+                    )}
+                    <span>{status.text}</span>
+                </div>
+            )}
         </div>
     );
 }

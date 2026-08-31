@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { Play, Plus, Trash2, Link, AlertTriangle, CheckCircle2, ShieldCheck, GitCommit } from "lucide-react";
 import api from "../services/api";
 
 function ControlPanel({ setMetrics, onGraphRefresh, setImpactReport, setAiLoading, onBuildExecuted, selectedNode, graphRefreshTrigger }) {
@@ -10,6 +11,7 @@ function ControlPanel({ setMetrics, onGraphRefresh, setImpactReport, setAiLoadin
     const [availableNodes, setAvailableNodes] = useState([]);
     const [loading, setLoading] = useState(false);
     const [buildFeedback, setBuildFeedback] = useState(null);
+    const [cycleStatus, setCycleStatus] = useState(null);
 
     const fetchNodes = useCallback(async () => {
         try {
@@ -43,14 +45,14 @@ function ControlPanel({ setMetrics, onGraphRefresh, setImpactReport, setAiLoadin
 
     async function handleRemoveNode() {
         if (!removeNode.trim()) return;
-        await api.delete("/graph/node", { data: { name: removeNode.trim() } });
+        await api.delete(`/graph/node/${encodeURIComponent(removeNode.trim())}`);
         setRemoveNode("");
         if (onGraphRefresh) onGraphRefresh();
     }
 
     async function handleAddDependency() {
         if (!fromNode.trim() || !toNode.trim()) return;
-        await api.post("/graph/dependency", { fr: fromNode.trim(), to: toNode.trim() });
+        await api.post("/graph/edge", { fr: fromNode.trim(), to: toNode.trim() });
         setFromNode("");
         setToNode("");
         if (onGraphRefresh) onGraphRefresh();
@@ -59,7 +61,7 @@ function ControlPanel({ setMetrics, onGraphRefresh, setImpactReport, setAiLoadin
     async function handleBuild(nodeOverride) {
         const target = (typeof nodeOverride === "string" ? nodeOverride : buildNode || "").trim();
         if (!target) return;
-        
+
         setLoading(true);
         setBuildFeedback(null);
         if (setAiLoading) setAiLoading(true);
@@ -74,12 +76,12 @@ function ControlPanel({ setMetrics, onGraphRefresh, setImpactReport, setAiLoadin
 
             setBuildFeedback({
                 type: "success",
-                message: `✅ Incremental build completed in ${duration}ms! Recompiled ${builtNames.length} class(es): ${builtNames.join(" → ")}`
+                message: `Recompiled ${builtNames.length} node(s) in ${duration}ms: ${builtNames.join(" → ")}`
             });
 
             if (onBuildExecuted) {
                 onBuildExecuted({
-                    timestamp: new Date().toLocaleTimeString(),
+                    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
                     changedNode: target,
                     success: res.data.success !== false,
                     durationMs: duration,
@@ -87,7 +89,6 @@ function ControlPanel({ setMetrics, onGraphRefresh, setImpactReport, setAiLoadin
                 });
             }
 
-            // Fetch AI Impact report
             try {
                 const impactRes = await api.get(`/projects/impact/${encodeURIComponent(target)}`);
                 if (setImpactReport) setImpactReport(impactRes.data);
@@ -100,7 +101,7 @@ function ControlPanel({ setMetrics, onGraphRefresh, setImpactReport, setAiLoadin
             console.error("Build failed:", err);
             setBuildFeedback({
                 type: "error",
-                message: `❌ Build trigger error: ${err.response?.data?.msg || err.message}`
+                message: `Build error: ${err.response?.data?.msg || err.message}`
             });
         } finally {
             setLoading(false);
@@ -108,110 +109,154 @@ function ControlPanel({ setMetrics, onGraphRefresh, setImpactReport, setAiLoadin
         }
     }
 
-    return (
-        <div className="card control-panel-card">
-            <h2 className="panel-header"><span className="icon">⚡</span> Engine Control Panel</h2>
+    async function handleCheckCycle() {
+        try {
+            const res = await api.get("/graph/cycle");
+            setCycleStatus({
+                hasCycle: res.data.hasCycle,
+                cycle: res.data.cycle || []
+            });
+        } catch {
+            setCycleStatus({ hasCycle: false, cycle: [] });
+        }
+    }
 
-            <div className="control-section">
-                <label className="section-label">Incremental Build Trigger</label>
-                
+    return (
+        <div className="card">
+            <div className="card-header">
+                <h3 className="card-title">
+                    <GitCommit size={15} />
+                    <span>Engine Controls</span>
+                </h3>
+            </div>
+
+            {/* Build Trigger Section */}
+            <div className="control-subgroup">
+                <label className="control-label">Incremental Build Execution</label>
+
                 {availableNodes.length > 0 && (
-                    <div style={{ marginBottom: "8px" }}>
-                        <select
-                            className="input-field"
-                            value={buildNode}
-                            onChange={(e) => setBuildNode(e.target.value)}
-                            style={{ width: "100%", cursor: "pointer", background: "#0f172a", color: "#f8fafc" }}
-                        >
-                            <option value="" disabled>-- Select Java Class / Node --</option>
-                            {availableNodes.map((n) => (
-                                <option key={n} value={n}>☕ {n}</option>
-                            ))}
-                        </select>
-                    </div>
+                    <select
+                        className="input-field"
+                        value={buildNode}
+                        onChange={(e) => setBuildNode(e.target.value)}
+                    >
+                        <option value="" disabled>Select target node</option>
+                        {availableNodes.map((n) => (
+                            <option key={n} value={n}>{n}</option>
+                        ))}
+                    </select>
                 )}
 
                 <div className="input-group">
                     <input
                         type="text"
                         className="input-field"
-                        placeholder="Or type class (e.g. Service.java)"
+                        placeholder="Or type node (e.g. Service.java)"
                         value={buildNode}
                         onChange={(e) => setBuildNode(e.target.value)}
                     />
-                    <button className="btn btn-accent" onClick={() => handleBuild()} disabled={loading}>
-                        {loading ? "Building..." : "🚀 Build File"}
+                    <button className="btn btn-accent" onClick={() => handleBuild()} disabled={loading || !buildNode}>
+                        <Play size={13} />
+                        <span>{loading ? "Building..." : "Run Build"}</span>
                     </button>
                 </div>
 
                 {buildFeedback && (
-                    <div
-                        style={{
-                            marginTop: "10px",
-                            padding: "8px 12px",
-                            borderRadius: "6px",
-                            fontSize: "13px",
-                            backgroundColor: buildFeedback.type === "success" ? "rgba(16, 185, 129, 0.15)" : "rgba(239, 68, 68, 0.15)",
-                            color: buildFeedback.type === "success" ? "#10b981" : "#ef4444",
-                            border: `1px solid ${buildFeedback.type === "success" ? "rgba(16, 185, 129, 0.3)" : "rgba(239, 68, 68, 0.3)"}`
-                        }}
-                    >
-                        {buildFeedback.message}
+                    <div className={`status-badge ${buildFeedback.type}`}>
+                        {buildFeedback.type === "success" ? <CheckCircle2 size={13} /> : <AlertTriangle size={13} />}
+                        <span>{buildFeedback.message}</span>
                     </div>
                 )}
             </div>
 
             <hr className="divider" />
 
-            <div className="control-section">
-                <label className="section-label">Add / Remove Node</label>
+            {/* Graph Operations Section */}
+            <div className="control-subgroup">
+                <label className="control-label">Node Management</label>
                 <div className="input-group">
                     <input
                         type="text"
                         className="input-field"
-                        placeholder="Node Name"
+                        placeholder="Add node (e.g. AuthController.java)"
                         value={addNode}
                         onChange={(e) => setAddNode(e.target.value)}
                     />
-                    <button className="btn btn-secondary" onClick={handleAddNode}>+ Add</button>
+                    <button className="btn btn-secondary" onClick={handleAddNode}>
+                        <Plus size={13} />
+                        <span>Add</span>
+                    </button>
                 </div>
-                <div className="input-group" style={{ marginTop: "8px" }}>
-                    <input
-                        type="text"
-                        className="input-field"
-                        placeholder="Node Name"
-                        value={removeNode}
-                        onChange={(e) => setRemoveNode(e.target.value)}
-                    />
-                    <button className="btn btn-outline-danger" onClick={handleRemoveNode}>- Remove</button>
-                </div>
-            </div>
 
-            <hr className="divider" />
-
-            <div className="control-section">
-                <label className="section-label">Manage Dependency Edge</label>
                 <div className="input-group">
                     <input
                         type="text"
                         className="input-field"
-                        placeholder="From Node"
+                        placeholder="Remove node"
+                        value={removeNode}
+                        onChange={(e) => setRemoveNode(e.target.value)}
+                    />
+                    <button className="btn btn-outline-danger" onClick={handleRemoveNode}>
+                        <Trash2 size={13} />
+                        <span>Delete</span>
+                    </button>
+                </div>
+            </div>
+
+            <div className="control-subgroup">
+                <label className="control-label">Dependency Edge (From → To)</label>
+                <div className="input-group">
+                    <input
+                        type="text"
+                        className="input-field"
+                        placeholder="From node"
                         value={fromNode}
                         onChange={(e) => setFromNode(e.target.value)}
                     />
                     <input
                         type="text"
                         className="input-field"
-                        placeholder="To Node"
+                        placeholder="To node"
                         value={toNode}
                         onChange={(e) => setToNode(e.target.value)}
                     />
-                    <button className="btn btn-secondary" onClick={handleAddDependency}>+ Edge</button>
+                    <button className="btn btn-secondary" onClick={handleAddDependency}>
+                        <Link size={13} />
+                        <span>Link</span>
+                    </button>
                 </div>
+            </div>
+
+            <hr className="divider" />
+
+            {/* Cycle Validation Section */}
+            <div className="control-subgroup">
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <label className="control-label">Topology Validation</label>
+                    <button className="btn btn-sm btn-secondary" onClick={handleCheckCycle}>
+                        <ShieldCheck size={12} />
+                        <span>Validate DAG</span>
+                    </button>
+                </div>
+
+                {cycleStatus && (
+                    <div className={`status-badge ${cycleStatus.hasCycle ? "error" : "success"}`}>
+                        {cycleStatus.hasCycle ? (
+                            <>
+                                <AlertTriangle size={13} />
+                                <span>Cycle detected in: {cycleStatus.cycle?.join(" → ")}</span>
+                            </>
+                        ) : (
+                            <>
+                                <CheckCircle2 size={13} />
+                                <span>Acyclic Graph Valid (No circular dependencies)</span>
+                            </>
+                        )}
+                    </div>
+                )}
             </div>
         </div>
     );
 }
 
 export default ControlPanel;
-

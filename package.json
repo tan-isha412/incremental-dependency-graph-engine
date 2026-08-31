@@ -10,9 +10,13 @@
   },
   "dependencies": {
     "@google/genai": "^0.2.0",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@vitejs/plugin-react": "^6.1.1",
     "axios": "^1.18.1",
     "cors": "^2.8.5",
     "express": "^4.21.2",
+    "lucide-react": "^1.38.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "reactflow": "^11.11.4",
