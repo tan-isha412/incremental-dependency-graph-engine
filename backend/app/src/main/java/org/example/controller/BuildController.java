@@ -4,9 +4,8 @@ import org.example.models.BuildResult;
 import org.example.service.BuildService;
 import org.springframework.web.bind.annotation.*;
 import org.example.dto.NodeRequest;
-import org.springframework.web.bind.annotation.CrossOrigin;
 
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(origins = "*")
 @RestController
 @RequestMapping("/build")
 public class BuildController {
@@ -17,12 +16,19 @@ public class BuildController {
         this.buildService = buildService;
     }
 
-    @PostMapping("/{node}")
-    public BuildResult build(@RequestBody NodeRequest node) {
-
-        if (node == null)
+    @PostMapping
+    public BuildResult buildNode(@RequestBody NodeRequest node) {
+        if (node == null || node.name() == null || node.name().isBlank()) {
             throw new IllegalArgumentException("Node name cannot be empty.");
-
+        }
         return buildService.build(node.name());
+    }
+
+    @PostMapping("/{node}")
+    public BuildResult buildNodeByPath(@PathVariable String node) {
+        if (node == null || node.isBlank()) {
+            throw new IllegalArgumentException("Node name cannot be empty.");
+        }
+        return buildService.build(node);
     }
 }

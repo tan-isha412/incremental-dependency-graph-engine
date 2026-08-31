@@ -1,0 +1,6 @@
+{
+  "name": "Incremental Build Intelligence Platform",
+  "description": "AI-powered incremental dependency graph engine, project scanner, AST analyzer, and build intelligence platform",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

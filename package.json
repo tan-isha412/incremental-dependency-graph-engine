@@ -1,0 +1,27 @@
+{
+  "name": "incremental-build-intelligence-platform",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "npx tsx server.ts",
+    "start": "npx tsx server.ts",
+    "lint": "cd frontend && npm run lint",
+    "build": "cd frontend && npm install --include=dev && npm run build"
+  },
+  "dependencies": {
+    "@google/genai": "^0.2.0",
+    "axios": "^1.18.1",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "reactflow": "^11.11.4",
+    "tsx": "^4.19.2",
+    "vite": "^8.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.0.0",
+    "vite": "^8.1.1"
+  }
+}
