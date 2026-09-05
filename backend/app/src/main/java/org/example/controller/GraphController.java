@@ -3,13 +3,17 @@ package org.example.controller;
 import org.example.dto.DepRequest;
 import org.example.dto.GraphResponse;
 import org.example.dto.NodeRequest;
+import org.example.engine.CycleDetector;
 import org.example.service.GraphService;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.bind.annotation.CrossOrigin;
+
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 @CrossOrigin(origins = "*")
 @RestController
-@RequestMapping("/graph")
+@RequestMapping("/api/graph")
 public class GraphController {
     private final GraphService gs;
 
@@ -22,18 +26,17 @@ public class GraphController {
         gs.addN(n.name());
     }
 
-    @DeleteMapping("/node")
-    public void removeN(@RequestBody NodeRequest n) {
-        gs.removeN(n.name());
+    @DeleteMapping("/node/{name}")
+    public void removeN(@PathVariable String name) {
+        gs.removeN(name);
     }
 
-    @PostMapping("/dependency")
+    @PostMapping("/edge")
     public void addDep(@RequestBody DepRequest d) {
-
         gs.addDep(d.fr(), d.to());
     }
 
-    @DeleteMapping("/dependency")
+    @DeleteMapping("/edge")
     public void removeDep(@RequestBody DepRequest d) {
         gs.removeDep(d.fr(), d.to());
     }
@@ -41,5 +44,14 @@ public class GraphController {
     @GetMapping
     public GraphResponse getGraph() {
         return gs.getGraph();
+    }
+
+    @GetMapping("/cycle")
+    public Map<String, Object> checkCycle() {
+        CycleDetector detector = new CycleDetector(gs.getInternalGraph());
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("hasCycle", detector.hasCycle());
+        result.put("cycle", List.of());
+        return result;
     }
 }

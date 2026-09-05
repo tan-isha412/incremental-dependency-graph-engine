@@ -3,7 +3,7 @@ import { FolderGit2, Upload, FileCode, Search, CheckCircle2, AlertCircle } from 
 import api from "../services/api";
 
 function ProjectPicker({ onScanComplete, onFileWatchTriggered }) {
-    const [projectPath, setProjectPath] = useState("/backend/app/src/main/java");
+    const [projectPath, setProjectPath] = useState("backend/app/src/main/java");
     const [loading, setLoading] = useState(false);
     const [status, setStatus] = useState(null);
     const [isDragging, setIsDragging] = useState(false);

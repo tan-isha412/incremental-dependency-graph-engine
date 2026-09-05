@@ -1,6 +1,9 @@
 package org.example.service;
 
 import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 
 import org.example.dto.GraphEdgeDTO;
@@ -61,8 +64,17 @@ public class GraphService {
     }
 
     public synchronized void scanProject(String projectPath) {
-        this.currentProjectPath = projectPath;
-        currentProjectFiles = scanner.discoverJavaFiles(projectPath);
+        String resolvedPath = projectPath;
+        Path candidate = Paths.get(resolvedPath);
+        if (!Files.isDirectory(candidate)) {
+            Path fallback = Paths.get("backend/app/src/main/java");
+            if (Files.isDirectory(fallback)) {
+                resolvedPath = fallback.toString();
+            }
+        }
+
+        this.currentProjectPath = resolvedPath;
+        currentProjectFiles = scanner.discoverJavaFiles(resolvedPath);
 
         // Clear existing graph nodes
         Set<String> existingNodes = new HashSet<>(g.getAllNodes());

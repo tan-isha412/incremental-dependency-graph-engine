@@ -2,6 +2,10 @@
 
 An AST-driven incremental dependency analysis and build optimization platform. It parses Java projects into an in-memory Directed Acyclic Graph (DAG), calculates minimal topological recompilation orders, detects cycles, and assesses blast-radius impact when source files change.
 
+The engine is implemented **twice**, independently:
+- **`backend/app/` (Java / Spring Boot + JavaParser)** — the primary, deployed backend. The React frontend talks to this by default, and it's what's deployed on Render (see [Deployment](#deployment)).
+- **`server.ts` (TypeScript / Express)** — a parallel implementation of the same engine and REST contract, using a lightweight regex-based Java parser instead of a real AST library. Useful to run standalone (`npm run dev`) or to compare approaches; not used in production.
+
 ---
 
 ## Features
@@ -24,11 +28,14 @@ An AST-driven incremental dependency analysis and build optimization platform. I
 │   │   ├── pages/          # Main Dashboard
 │   │   └── services/       # Axios API client
 │   └── package.json
-├── server.ts               # Express API server & TypeScript AST/DAG engine
-├── app/                    # Optional Java Gradle module (Spring Boot / JavaParser)
-├── backend/                # Gradle wrapper & build scripts
-├── package.json            # Root scripts & unified dependencies
-└── .env.example            # Environment configuration template
+├── backend/                # Gradle multi-project root (wrapper + settings)
+│   └── app/                # Spring Boot service: controllers, DAG engine, JavaParser AST analyzer
+│       └── build.gradle    # also bundles frontend/dist as Spring static content when built
+├── server.ts               # Alternate Express API server & TypeScript AST/DAG engine (not deployed)
+├── Dockerfile               # Multi-stage build: frontend -> Spring Boot jar -> JRE runtime image
+├── render.yaml              # Render Blueprint (Docker runtime) for the Spring Boot service
+├── package.json            # Root scripts for the TS/Express alternate path
+└── .env.example            # Environment configuration template (server.ts only)
 ```
 
 ---
@@ -37,79 +44,26 @@ An AST-driven incremental dependency analysis and build optimization platform. I
 
 ### Prerequisites
 
-- **Node.js**: `v18.0.0` or higher
-- **npm** or **bun**
-- *(Optional)* **JDK 17+** and Gradle if running the standalone Java backend
+- **JDK 21** and the bundled Gradle wrapper (primary backend)
+- **Node.js** `v18+` and npm (frontend build; also needed for the alternate TS backend)
 
 ---
 
-### Step 1: Install Dependencies
-
-Install root and frontend dependencies:
+### Step 1: Build the frontend
 
 ```bash
-# Install root backend dependencies
-npm install
-
-# Install frontend dependencies
 cd frontend
 npm install
+npm run build   # produces frontend/dist, which the Spring Boot build bundles as static content
 cd ..
 ```
 
 ---
 
-### Step 2: Configure Environment (Optional)
-
-Copy the environment template:
+### Step 2: Run the Spring Boot backend
 
 ```bash
-cp .env.example .env
-```
-
-If you wish to enable AI-assisted impact reasoning, add your Gemini API key to `.env`:
-
-```env
-GEMINI_API_KEY=your_gemini_api_key_here
-PORT=3000
-```
-
-*(Note: The core AST parser, DAG engine, incremental builder, and test recommender work completely offline without an API key).*
-
----
-
-### Step 3: Run the Development Server
-
-Start the full-stack application (Express API + Vite React frontend):
-
-```bash
-npm run dev
-```
-
-Open your browser and navigate to:
-```
-http://localhost:3000
-```
-
----
-
-### Step 4: Build for Production
-
-To create an optimized production build:
-
-```bash
-npm run build
-npm start
-```
-
----
-
-## Standalone Java Backend (Optional)
-
-If you prefer running the native Java Spring Boot service alongside the client:
-
-```bash
-cd backend/app
+cd backend
 
 # On Linux / macOS
 ./gradlew bootRun
@@ -118,11 +72,33 @@ cd backend/app
 gradlew.bat bootRun
 ```
 
-The Spring Boot backend will start on `http://localhost:8080`.
+This serves both the REST API (under `/api/*`) and the built React app (at `/`) on `http://localhost:8080`.
+
+---
+
+### Alternate: run the TypeScript/Express implementation instead
+
+Not used in production, but runnable standalone for comparison:
+
+```bash
+npm install
+cp .env.example .env   # optional: add GEMINI_API_KEY for AI-assisted impact reasoning
+npm run dev             # http://localhost:3000
+```
+
+*(Only `server.ts` calls Gemini; the Spring Boot backend's impact analysis is fully rule-based and needs no API key.)*
+
+---
+
+## Deployment
+
+The project deploys as a single Docker image (`Dockerfile` at the repo root): it builds the frontend, builds the Spring Boot jar with the frontend bundled in as static resources, then packages a minimal JRE runtime image. `render.yaml` configures this as a Render Blueprint (Docker runtime) — see the repo's deployment notes for the exact steps.
 
 ---
 
 ## API Endpoints Reference
+
+All endpoints are served under `/api` by the Spring Boot backend (`backend/app`).
 
 | Method | Endpoint | Description |
 |---|---|---|
@@ -130,9 +106,10 @@ The Spring Boot backend will start on `http://localhost:8080`.
 | `POST` | `/api/graph/node` | Add a new node to the graph (`{ name: string }`) |
 | `DELETE` | `/api/graph/node/:name` | Remove a node and its associated dependencies |
 | `POST` | `/api/graph/edge` | Add a directed dependency edge (`{ fr: string, to: string }`) |
-| `DELETE` | `/api/graph/dependency` | Remove a dependency edge |
+| `DELETE` | `/api/graph/edge` | Remove a dependency edge (`{ fr: string, to: string }`) |
+| `GET` | `/api/graph/cycle` | Check whether the current graph has a circular dependency |
 | `POST` | `/api/build` | Execute an incremental build for a changed node |
-| `POST` | `/api/projects/scan` | Scan local filesystem path for Java files and parse AST |
+| `POST` | `/api/projects/scan` | Scan a filesystem path for Java files and parse AST |
 | `POST` | `/api/projects/upload` | Upload and analyze an array of `.java` source files |
 | `GET` | `/api/projects/impact/:file` | Generate blast-radius impact report and recommended tests |
 | `GET` | `/api/projects/changes` | Check file watcher for real-time filesystem modifications |

@@ -7,7 +7,7 @@ import org.example.dto.NodeRequest;
 
 @CrossOrigin(origins = "*")
 @RestController
-@RequestMapping("/build")
+@RequestMapping("/api/build")
 public class BuildController {
 
     private final BuildService buildService;

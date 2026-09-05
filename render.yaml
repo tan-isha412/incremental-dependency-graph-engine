@@ -1,10 +1,7 @@
 services:
   - type: web
     name: incremental-build-intelligence-platform
-    runtime: node
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
     plan: free
-    buildCommand: npm install && npm run build
-    startCommand: npm start
-    envVars:
-      - key: GEMINI_API_KEY
-        sync: false

@@ -10,6 +10,7 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
 app.use(cors());
 app.use(express.json());
 
@@ -205,7 +206,8 @@ class GraphEngine {
       }
     }
 
-    return stack.reverse();
+    // Post-order push already yields dependencies before dependents; no reversal needed.
+    return stack;
   }
 
   // Incremental Build Execution

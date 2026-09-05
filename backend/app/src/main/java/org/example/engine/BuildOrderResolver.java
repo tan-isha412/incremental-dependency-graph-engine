@@ -16,37 +16,34 @@ public class BuildOrderResolver {
     public List<Node> getBuildOrder(Collection<Node> affectedNodes) {
 
         Set<Node> visited = new HashSet<>();
-        Deque<Node> stack = new ArrayDeque<>();
+        List<Node> buildOrder = new ArrayList<>();
         Set<Node> allowedNodes = new HashSet<>(affectedNodes);
         for (Node node : affectedNodes) {
 
             if (!visited.contains(node)) {
-                dfs(node, allowedNodes, visited, stack);
+                dfs(node, allowedNodes, visited, buildOrder);
             }
-        }
-
-        List<Node> buildOrder = new ArrayList<>();
-
-        while (!stack.isEmpty()) {
-            buildOrder.add(stack.pop());
         }
 
         return buildOrder;
     }
 
+    // Post-order DFS over "depends on" edges: a node is only appended after all
+    // of its own dependencies have been appended, so the result is already in
+    // correct build order (dependencies before dependents) with no reversal needed.
     private void dfs(Node current,
             Set<Node> allowedNodes,
             Set<Node> visited,
-            Deque<Node> stack) {
+            List<Node> buildOrder) {
 
         visited.add(current);
 
         for (Node neighbour : graph.getDependencies(current.getName())) {
             if (allowedNodes.contains(neighbour) && !visited.contains(neighbour)) {
-                dfs(neighbour, allowedNodes, visited, stack);
+                dfs(neighbour, allowedNodes, visited, buildOrder);
             }
         }
 
-        stack.push(current);
+        buildOrder.add(current);
     }
 }

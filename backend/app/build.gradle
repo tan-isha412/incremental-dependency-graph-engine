@@ -29,3 +29,17 @@ java {
 tasks.named('test') {
     useJUnitPlatform()
 }
+
+// Bundle the built React app (frontend/dist) as Spring Boot static content
+// so the same jar serves both the API and the UI.
+tasks.named('processResources') {
+    from("${rootDir}/../frontend/dist") {
+        into 'static'
+    }
+}
+
+// Only produce the executable Spring Boot jar in build/libs (skip the plain,
+// non-runnable jar) so Docker's `COPY *.jar` has exactly one match.
+tasks.named('jar') {
+    enabled = false
+}
