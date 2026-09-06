@@ -95,13 +95,14 @@ function GraphCanvas({ refreshTrigger, onNodeSelect }) {
 
             <div style={{ width: "100%", height: "500px", borderRadius: "6px", overflow: "hidden", border: "1px solid var(--border)", background: "#09090b" }}>
                 <ReactFlow
-                    nodes={nodes}
-                    edges={edges}
-                    onNodeClick={handleNodeClick}
-                    fitView
-                >
+    nodes={nodes}
+    edges={edges}
+    onNodeClick={handleNodeClick}
+    fitView
+    proOptions={{ hideAttribution: true }}
+>
                     <Background color="#27272a" gap={20} size={1} />
-                    <Controls style={{ fill: "#f4f4f5" }} />
+                    <Controls style={{ fill: "#f4f4f5" }} showInteractive={false} />
                     <MiniMap
                         nodeColor={() => "#3b82f6"}
                         maskColor="rgba(9, 9, 11, 0.8)"

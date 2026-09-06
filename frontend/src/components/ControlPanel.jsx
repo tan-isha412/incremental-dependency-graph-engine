@@ -204,28 +204,34 @@ function ControlPanel({ setMetrics, onGraphRefresh, setImpactReport, setAiLoadin
             </div>
 
             <div className="control-subgroup">
-                <label className="control-label">Dependency Edge (From → To)</label>
-                <div className="input-group">
-                    <input
-                        type="text"
-                        className="input-field"
-                        placeholder="From node"
-                        value={fromNode}
-                        onChange={(e) => setFromNode(e.target.value)}
-                    />
-                    <input
-                        type="text"
-                        className="input-field"
-                        placeholder="To node"
-                        value={toNode}
-                        onChange={(e) => setToNode(e.target.value)}
-                    />
-                    <button className="btn btn-secondary" onClick={handleAddDependency}>
-                        <Link size={13} />
-                        <span>Link</span>
-                    </button>
-                </div>
-            </div>
+    <label className="control-label">Dependency Edge (From → To)</label>
+    <div className="input-group">
+        <select
+            className="input-field"
+            value={fromNode}
+            onChange={(e) => setFromNode(e.target.value)}
+        >
+            <option value="" disabled>From node</option>
+            {availableNodes.map((n) => (
+                <option key={n} value={n}>{n}</option>
+            ))}
+        </select>
+        <select
+            className="input-field"
+            value={toNode}
+            onChange={(e) => setToNode(e.target.value)}
+        >
+            <option value="" disabled>To node</option>
+            {availableNodes.map((n) => (
+                <option key={n} value={n}>{n}</option>
+            ))}
+        </select>
+        <button className="btn btn-secondary" onClick={handleAddDependency}>
+            <Link size={13} />
+            <span>Link</span>
+        </button>
+    </div>
+</div>
 
             <hr className="divider" />
 
